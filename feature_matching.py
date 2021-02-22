@@ -12,21 +12,25 @@ def get_features(image, *, key_detect=default_key_detect, desc_detect=default_de
     return key, desc
 
 
-def find_keypoint_matches(first, second, *, lowe_coefficient=0.8, matcher=default_matcher):
-    matches = matcher.knnMatch(second.desc, first.desc, k=2)
+def find_keypoint_matches(first: np.array, second: np.array, *, lowe_coefficient: float = 0.8, matcher=default_matcher):
+    first_key,  first_desc = get_features(first)
+    second_key, second_desc = get_features(second)
+    matches = matcher.knnMatch(second_desc, first_desc, k=2)
     matches = [m for m, n in matches if m.distance < lowe_coefficient * n.distance]
-    src = np.array([second.key[match.queryIdx].pt for match in matches]).reshape((-1, 1, 2))
-    dst = np.array([first .key[match.trainIdx].pt for match in matches]).reshape((-1, 1, 2))
+    src = np.array([second_key[match.queryIdx].pt for match in matches]).reshape((-1, 1, 2))
+    dst = np.array([first_key[match.trainIdx].pt for match in matches]).reshape((-1, 1, 2))
     return src, dst
 
 
 def compute_homography(src, dst):
     homography, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
     mask = mask.reshape(-1).astype(bool)
+    print(f"{100 * mask.sum() / mask.size:.1f}% inliers")
     src, dst = src[mask], dst[mask]
-    return homography, src, dst
+    return {'base': homography}, src, dst
 
 
-def compute_even_similarity(src, dst):
-    # TODO
-    raise NotImplementedError
+def compute_even_similarity(src0, dst0):
+    src = [complex(pt[0], pt[1]) for pt in src0]
+    dst = [complex(pt[0], pt[1]) for pt in dst0]
+
