@@ -27,7 +27,6 @@ def compute_homography(src, dst):
     return homography, src, dst
 
 
-# Translate, Scale, Rotate
-def compute_tsr_transformation(src, dst):
+def compute_even_similarity(src, dst):
     # TODO
     raise NotImplementedError

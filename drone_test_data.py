@@ -59,6 +59,6 @@ def frames_at(indices, filename, sub_filename=None, silent=True):
             altitude, position, dt = read_subtitle_data(subs[s])
         else:
             altitude, position, dt = None, None, None
-        frame = Frame(image=image, altitude=altitude, position=position, datetime=dt)
+        frame = Frame(image=image, altitude=altitude, position=position, datetime_=dt)
         result.append(frame)
     return result

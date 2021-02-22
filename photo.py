@@ -1,25 +1,28 @@
 import datetime
+import typing
 
 import numpy as np
 
+OFloat = typing.Optional[float]
+
 
 class DroneCameraMetadata:
-    latitude: float
-    longitude: float
-    elevation: float
-    roll: float
-    pitch: float
-    yaw: float
+    latitude: OFloat
+    longitude: OFloat
+    height: OFloat
+    roll: OFloat
+    pitch: OFloat
+    yaw: OFloat
     time: datetime.datetime
 
-    def __init__(self, latitude: float, longitude: float, elevation: float,
-                 roll: float, pitch: float, yaw: float, curr_time: datetime.datetime):
-        self.latitude, self.longitude, self.elevation = latitude, longitude, elevation
+    def __init__(self, latitude: OFloat, longitude: OFloat, height: OFloat,
+                 roll: OFloat, pitch: OFloat, yaw: OFloat, curr_time: datetime.datetime):
+        self.latitude, self.longitude, self.height = latitude, longitude, height
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
         self.curr_time = curr_time
 
     def __repr__(self):
-        return f"DroneCameraMetadata(latitude={self.latitude}, longitude={self.longitude}, elevation={self.elevation}" \
+        return f"DroneCameraMetadata(latitude={self.latitude}, longitude={self.longitude}, height={self.height}" \
                     + f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, curr_time={self.curr_time})"
 
 
