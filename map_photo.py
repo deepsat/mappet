@@ -89,7 +89,7 @@ class MapPhoto:
         data, src1, dst1 = feature_matching.compute_homography(src, dst)
         self.metadata.x = self.metadata.y = self.metadata.z = None
         self.metadata.roll = self.metadata.pitch = self.metadata.yaw = None
-        self.base_transform = data['base'] @ prev.transform
+        self.base_transform = prev.transform @ data['base']
 
     def even_similarity_enhancement(self, prev):
         src, dst = feature_matching.find_keypoint_matches(prev.image, self.image)
@@ -113,10 +113,11 @@ class MapPhoto:
         y_min, y_max, x_min, x_max = [x/h for x in self.bounds]
         print(f"{y_min}..{y_max} {x_min}..{x_max}")
         shift = np.array([
-            [1, 0, -y_min],
-            [0, 1, -x_min],
+            [1, 0, -y_min*h],
+            [0, 1, -x_min*h],
             [0, 0, h]
         ])
+        print("-> ", shift @ self.transform)
         return cv2.warpPerspective(self.image, shift @ self.transform, (round(y_max-y_min)+1, round(x_max-x_min)+1))
 
     def __repr__(self):
@@ -130,7 +131,8 @@ if __name__ == '__main__':
     SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
     frames = frames_at([4525, 4550, 4600], FILENAME, SUB_FILENAME, silent=False)
     for frame in frames:
-        frame.image = cv2.resize(frame.image, (1920//2, 1080//2))
+        frame.image = cv2.resize(frame.image, (960, 540))
+    frames[2].image = cv2.resize(frames[2].image[135:-135, 240:-240], (960, 540))
 
     def rads(i):
         return (geodesy.math.radians(x) for x in frames[i].position[:2][::-1])
@@ -146,7 +148,9 @@ if __name__ == '__main__':
     print(photos)
     photos[0].metadata.yaw = 0
     photos[1].homography_enhancement(photos[0])
-    # photos[2].homography_enhancement(photos[1])
-    for k in range(2):
+    photos[2].homography_enhancement(photos[1])
+    for k in range(3):
         print(photos[k].transform)
-        cv2.imwrite(f'test/im{k}.png', photos[k].warp())
+        print(photos[k].image.shape)
+        cv2.imwrite(f'test/im{k}.png', photos[k].image)
+        cv2.imwrite(f'test/imw{k}.png', photos[k].warp())
