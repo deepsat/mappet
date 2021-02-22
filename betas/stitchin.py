@@ -13,7 +13,7 @@ import numpy as np
 import tqdm
 
 import blending
-import drone_records
+import drone_test_data
 import geometry as geo
 
 TILING_EXEC = None # "./geotiling"
@@ -329,7 +329,7 @@ def main():
     # ind = tuple(range(3000, 3000+n*25, 25))
     # ind = [3000+11*50, 3050+12*50+10]
     ind = tuple(range(4525 + f*25, 4525 + f*25 + n*25, 25))
-    frames = drone_records.frames_at(ind, FILENAME, SUB_FILENAME, silent=False)
+    frames = drone_test_data.frames_at(ind, FILENAME, SUB_FILENAME, silent=False)
     # for frame in frames:
     #      frame.image = frame.image[310:-310,120:-120]
 

@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import tqdm
 
-from drone_records import frames_at
+from drone_test_data import frames_at
 
 SIZE = (6,8)
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)

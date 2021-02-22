@@ -32,5 +32,3 @@ class DronePhoto:
 
     def __repr__(self):
         return f"DronePhoto(image=<{' x '.join(map(str, self.image.shape))}>, metadata={self.metadata})"
-
-
