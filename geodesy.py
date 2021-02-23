@@ -27,9 +27,9 @@ class LocalTangentPlane:
         z -= z0
         lng, lat = self.longitude, self.latitude
         return (
-            -math.sin(lng) * x + math.cos(lng) * y,
-            -math.sin(lat) * math.cos(lng) * x + -math.sin(lat) * math.sin(lng) * y + math.cos(lat) * z,
-            math.cos(lat) * math.cos(lng) * x + math.cos(lat) * math.sin(lng) * y + math.sin(lat) * z
+            round(-math.sin(lng) * x + math.cos(lng) * y, 3),
+            round(-math.sin(lat) * math.cos(lng) * x + -math.sin(lat) * math.sin(lng) * y + math.cos(lat) * z, 3),
+            round(math.cos(lat) * math.cos(lng) * x + math.cos(lat) * math.sin(lng) * y + math.sin(lat) * z, 3)
         )
 
 

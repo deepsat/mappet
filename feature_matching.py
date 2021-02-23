@@ -27,10 +27,11 @@ def compute_homography(src, dst):
     mask = mask.reshape(-1).astype(bool)
     print(f"{100 * mask.sum() / mask.size:.1f}% inliers")
     src, dst = src[mask], dst[mask]
-    return {'base': homography}, src, dst
+    base = homography.copy()
+    return base, src, dst
 
 
 def compute_even_similarity(src0, dst0):
-    src = [complex(pt[0], pt[1]) for pt in src0]
-    dst = [complex(pt[0], pt[1]) for pt in dst0]
-
+    src = np.array([complex(pt[0], pt[1]) for pt in src0])
+    dst = np.array([complex(pt[0], pt[1]) for pt in dst0])
+    raise NotImplementedError
