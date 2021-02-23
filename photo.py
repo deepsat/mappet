@@ -3,6 +3,8 @@ import typing
 
 import numpy as np
 
+from camera import DroneCamera
+
 OFloat = typing.Optional[float]
 
 
@@ -13,17 +15,20 @@ class DroneCameraMetadata:
     roll: OFloat
     pitch: OFloat
     yaw: OFloat
-    time: datetime.datetime
+    curr_time: datetime.datetime
+    camera: DroneCamera
 
     def __init__(self, latitude: OFloat, longitude: OFloat, height: OFloat,
-                 roll: OFloat, pitch: OFloat, yaw: OFloat, curr_time: datetime.datetime):
+                 roll: OFloat, pitch: OFloat, yaw: OFloat, curr_time: datetime.datetime,
+                 camera: typing.Optional[DroneCamera]):
         self.latitude, self.longitude, self.height = latitude, longitude, height
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
-        self.curr_time = curr_time
+        self.curr_time, self.camera = curr_time, camera
 
     def __repr__(self):
         return f"DroneCameraMetadata(latitude={self.latitude}, longitude={self.longitude}, height={self.height}" \
-                    + f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, curr_time={self.curr_time})"
+                    + f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, curr_time={self.curr_time}" \
+                    + f", camera={self.camera})"
 
 
 class DronePhoto:

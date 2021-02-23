@@ -1,9 +1,12 @@
 import datetime
+import math
 import typing
 
 import tqdm
 import numpy as np
 import cv2
+
+from photo import DronePhoto, DroneCameraMetadata
 
 SUB_SEC_GAP = 1.0
 
@@ -21,7 +24,7 @@ class Frame:
         return f"Frame(image=<{'x'.join(str(x) for x in self.image.shape)}>, altitude={self.altitude}, position={self.position}, datetime={self.datetime})"
 
 
-def parse_subtitles(sub_filename=None):
+def parse_subtitles(sub_filename=None) -> typing.List[typing.List[str]]:
     subs = open(sub_filename, 'r').read().splitlines()
     subs = [line for line in subs if line]
     subs = [line for i, line in enumerate(subs) if i % 5 in (2, 3, 4)]
@@ -29,7 +32,7 @@ def parse_subtitles(sub_filename=None):
     return subs
 
 
-def read_subtitle_data(line):
+def read_subtitle_data(line) -> typing.Tuple[float, typing.Tuple[float, ...], datetime.datetime]:
     return (
         float(line[4].split(':')[1]),  # altitude
         tuple(float(x) for x in line[3][4:-1].split(',')),  # position
@@ -37,7 +40,7 @@ def read_subtitle_data(line):
     )
 
 
-def frames_at(indices, filename, sub_filename=None, silent=True):
+def frames_at(indices, filename, sub_filename=None, silent=True) -> typing.List[Frame]:
     video = cv2.VideoCapture(filename)
     fps = video.get(cv2.CAP_PROP_FPS)
     if not silent:
@@ -62,3 +65,13 @@ def frames_at(indices, filename, sub_filename=None, silent=True):
         frame = Frame(image=image, altitude=altitude, position=position, datetime_=dt)
         result.append(frame)
     return result
+
+
+def get_drone_photos(indices, filename, sub_filename=None, silent=True) -> typing.List[DronePhoto]:
+    frames = frames_at(indices, filename, sub_filename, silent)
+    return [DronePhoto(
+        frame.image, DroneCameraMetadata(
+            math.radians(frame.position[1]), math.radians(frame.position[0]), frame.altitude,
+            0, 0, None, frame.datetime, None
+        )
+    ) for frame in frames]
