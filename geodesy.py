@@ -16,10 +16,17 @@ def geodetic_to_ecef(latitude: float, longitude: float, height: float) -> typing
 
 
 class LocalTangentPlane:
-    def __init__(self, latitude, longitude, height):
+    latitude: float
+    longitude: float
+    height: float
+
+    def __init__(self, latitude: float, longitude: float, height: float):
         self.latitude, self.longitude, self.height = latitude, longitude, height
 
-    def enu(self, latitude, longitude, height):
+    def __repr__(self) -> str:
+        return f"LocalTangentPlane(latitude={self.latitude}, longitude={self.longitude}, height={self.height})"
+
+    def enu(self, latitude: float, longitude: float, height: float) -> typing.Tuple[float, float, float]:
         x0, y0, z0 = geodetic_to_ecef(self.latitude, self.longitude, self.height)
         x, y, z = geodetic_to_ecef(latitude, longitude, height)
         x -= x0
@@ -27,9 +34,9 @@ class LocalTangentPlane:
         z -= z0
         lng, lat = self.longitude, self.latitude
         return (
-            round(-math.sin(lng) * x + math.cos(lng) * y, 3),
-            round(-math.sin(lat) * math.cos(lng) * x + -math.sin(lat) * math.sin(lng) * y + math.cos(lat) * z, 3),
-            round(math.cos(lat) * math.cos(lng) * x + math.cos(lat) * math.sin(lng) * y + math.sin(lat) * z, 3)
+            -math.sin(lng) * x + math.cos(lng) * y,
+            -math.sin(lat) * math.cos(lng) * x + -math.sin(lat) * math.sin(lng) * y + math.cos(lat) * z,
+            math.cos(lat) * math.cos(lng) * x + math.cos(lat) * math.sin(lng) * y + math.sin(lat) * z
         )
 
 

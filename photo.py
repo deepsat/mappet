@@ -25,10 +25,10 @@ class DroneCameraMetadata:
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
         self.curr_time, self.camera = curr_time, camera
 
-    def __repr__(self):
-        return f"DroneCameraMetadata(latitude={self.latitude}, longitude={self.longitude}, height={self.height}" \
-                    + f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, curr_time={self.curr_time}" \
-                    + f", camera={self.camera})"
+    def __repr__(self) -> str:
+        return f"DroneCameraMetadata(latitude={self.latitude}, longitude={self.longitude}, height={self.height}, " + \
+               f"roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, curr_time={self.curr_time}, " + \
+               f"camera={self.camera})"
 
 
 class DronePhoto:
@@ -38,5 +38,5 @@ class DronePhoto:
     def __init__(self, image: np.array, metadata: DroneCameraMetadata):
         self.image, self.metadata = image, metadata
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"DronePhoto(image=<{' x '.join(map(str, self.image.shape))}>, metadata={self.metadata})"

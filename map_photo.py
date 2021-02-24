@@ -29,11 +29,11 @@ class MapPhotoMetadata:
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
         self.camera = camera
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"DroneCameraMetadata(x={self.x}, y={self.y}, z={self.z}" \
                + f", roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}, camera={self.camera})"
 
-    def get_im_to_enu(self, shape):
+    def get_im_to_enu(self, shape: typing.Tuple[int, int]) -> typing.Optional[typing.Tuple[float, float]]:
         w, h = shape
         if any(v is None for v in (self.x, self.y, self.z, self.yaw, self.camera)):
             return None

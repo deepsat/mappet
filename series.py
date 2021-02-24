@@ -13,6 +13,7 @@ from photo import DronePhoto
 from map_photo import MapPhoto
 from feature_matching import find_keypoint_matches, compute_homography, compute_even_similarity
 
+
 class RelativeSeries:
     local_latitude: float
     local_longitude: float
@@ -21,7 +22,7 @@ class RelativeSeries:
     photos: typing.List[MapPhoto]
     next_transform: typing.List[np.array]
 
-    def __init__(self, local_latitude, local_longitude, ref_height):
+    def __init__(self, local_latitude: float, local_longitude: float, ref_height: float):
         self.local_latitude, self.local_longitude, self.ref_height = local_latitude, local_longitude, ref_height
         self.plane = LocalTangentPlane(self.local_latitude, self.local_latitude, 0)
         self.photos = []
@@ -41,22 +42,22 @@ class RelativeSeries:
                 raise ValueError("No such relativity method")
             self.next_transform.append(get())
 
-    def transform(self, i):
+    def transform(self, i: int) -> np.array:
         return functools.reduce(operator.matmul, self.next_transform[:i], np.identity(3))
 
-    def quad(self, i):
+    def quad(self, i: int) -> np.array:
         h, w = self.photos[i].image.shape[:2]
         pts = ((0, 0), (w, 0), (w, h), (0, h))
         return np.array([warp_perspective(self.transform(i), pt) for pt in pts])
 
-    def bounds(self, i=None):
+    def bounds(self, i: typing.Optional[int] = None) -> typing.Tuple[int, int, int, int]:
         q = np.array([self.quad(i) for i in range(len(self.photos))]).reshape(-1, 2) if i is None else self.quad(i)
         return (
             math.floor(q[:, 0].min()), math.ceil(q[:, 0].max()),
             math.floor(q[:, 1].min()), math.ceil(q[:, 1].max())
         )
 
-    def warped(self, i):
+    def warped(self, i: int) -> typing.Tuple[typing.Tuple[int, int, int, int], np.array]:
         x_min, x_max, y_min, y_max = self.bounds(i)
         shift = np.array([
             [1, 0, -x_min],
@@ -66,7 +67,7 @@ class RelativeSeries:
         w, h = x_max-x_min+1, y_max-y_min+1
         return (x_min, y_min, w, h), cv2.warpPerspective(self.photos[i].image, shift @ self.transform(i), (w, h))
 
-    def stitch(self):
+    def stitch(self) -> np.array:
         x_min, x_max, y_min, y_max = self.bounds()
         result = np.zeros((round(y_max-y_min+1), round(x_max-x_min+1), 3), dtype=np.uint8)
         for i in range(len(self.photos)):
@@ -77,6 +78,9 @@ class RelativeSeries:
             mask = occ_mask(image).astype(bool)
             result[y:y+h, x:x+w][mask] = image[mask]
         return result
+
+    def fit_im_to_enu(self) -> np.array:
+        raise NotImplementedError
 
 
 if __name__ == '__main__':

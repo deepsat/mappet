@@ -14,17 +14,18 @@ SUB_SEC_GAP = 1.0
 class Frame:
     image: np.array
     altitude: float
-    position: typing.Tuple[float, float]
+    position: typing.Tuple[float, float, float]
     datetime: datetime.datetime
 
-    def __init__(self, image, altitude, position, datetime_):
-        self.image, self.altitude, self.position, self.datetime = image, altitude, position, datetime_
+    def __init__(self, image: np.array, altitude: float, position: typing.Tuple[float, float, float], datetime_):
+        self.image, self.altitude, self.position, self.datetime = image, altitude, position, dt
 
-    def __repr__(self):
-        return f"Frame(image=<{'x'.join(str(x) for x in self.image.shape)}>, altitude={self.altitude}, position={self.position}, datetime={self.datetime})"
+    def __repr__(self) -> str:
+        return f"Frame(image=<{'x'.join(str(x) for x in self.image.shape)}>, altitude={self.altitude}, " + \
+               f"position={self.position}, datetime={self.datetime})"
 
 
-def parse_subtitles(sub_filename=None) -> typing.List[typing.List[str]]:
+def parse_subtitles(sub_filename: str) -> typing.List[typing.List[str]]:
     subs = open(sub_filename, 'r').read().splitlines()
     subs = [line for line in subs if line]
     subs = [line for i, line in enumerate(subs) if i % 5 in (2, 3, 4)]
@@ -32,15 +33,17 @@ def parse_subtitles(sub_filename=None) -> typing.List[typing.List[str]]:
     return subs
 
 
-def read_subtitle_data(line) -> typing.Tuple[float, typing.Tuple[float, ...], datetime.datetime]:
+def read_subtitle_data(verse: typing.List[str]) -> typing.Tuple[float, typing.Tuple[float, float, float], datetime.datetime]:
+    lat, lng, th = (float(x) for x in verse[3][4:-1].split(','))
     return (
-        float(line[4].split(':')[1]),  # altitude
-        tuple(float(x) for x in line[3][4:-1].split(',')),  # position
-        datetime.datetime.fromisoformat(' '.join((line[1].replace('.', '-'), line[2]))),  # datetime
+        float(verse[4].split(':')[1]),  # altitude
+        (lat, lng, th),  # position
+        datetime.datetime.fromisoformat(' '.join((verse[1].replace('.', '-'), verse[2]))),  # datetime
     )
 
 
-def frames_at(indices, filename, sub_filename=None, silent=True) -> typing.List[Frame]:
+def frames_at(indices : typing.List[int], filename: str, sub_filename: typing.Optional[str] = None,
+              silent: bool = True) -> typing.List[Frame]:
     video = cv2.VideoCapture(filename)
     fps = video.get(cv2.CAP_PROP_FPS)
     if not silent:
@@ -62,12 +65,13 @@ def frames_at(indices, filename, sub_filename=None, silent=True) -> typing.List[
             altitude, position, dt = read_subtitle_data(subs[s])
         else:
             altitude, position, dt = None, None, None
-        frame = Frame(image=image, altitude=altitude, position=position, datetime_=dt)
+        frame = Frame(image, altitude, position, dt)
         result.append(frame)
     return result
 
 
-def get_drone_photos(indices, filename, sub_filename=None, silent=True) -> typing.List[DronePhoto]:
+def get_drone_photos(indices : typing.List[int], filename: str, sub_filename: typing.Optional[str] = None,
+                     silent: bool = True) -> typing.List[DronePhoto]:
     frames = frames_at(indices, filename, sub_filename, silent)
     return [DronePhoto(
         frame.image, DroneCameraMetadata(
