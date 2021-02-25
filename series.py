@@ -106,7 +106,7 @@ class RelativeSeries:
         x = np.array([complex(*self.warped_center(i)) for i in range(len(self.photos))])
         x1 = np.column_stack((x, np.ones(len(self.photos))))
         y = np.array([complex(photo.metadata.x, photo.metadata.y) for photo in self.photos])
-        m, c = np.linalg.lstsq(x1, y, rcond=None)
+        m, c = np.linalg.lstsq(x1, y, rcond=None)[0]
         return np.array([
             m.real, -m.imag, c.real,
             m.imag,  m.real, c.imag,
@@ -120,8 +120,8 @@ if __name__ == '__main__':
     FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
     SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-    n = 8
-    photos = get_drone_photos([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000][:n], FILENAME, SUB_FILENAME, silent=False)
+    n = 25
+    photos = get_drone_photos(([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n], FILENAME, SUB_FILENAME, silent=False)
     lat, lng, lh = photos[0].metadata.latitude, photos[0].metadata.longitude, photos[0].metadata.height
 
     series = RelativeSeries(lat, lng, lh)
