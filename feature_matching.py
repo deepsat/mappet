@@ -31,15 +31,3 @@ def find_keypoint_matches(first: np.array, second: np.array, *, lowe_coefficient
     return src, dst
 
 
-def compute_homography(src, dst):
-    homography, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
-    mask = mask.reshape(-1).astype(bool)
-    src, dst = src[mask], dst[mask]
-    base = homography.copy()
-    return base, src, dst
-
-
-def compute_even_similarity(src0, dst0):
-    src = np.array([complex(pt[0], pt[1]) for pt in src0])
-    dst = np.array([complex(pt[0], pt[1]) for pt in dst0])
-    raise NotImplementedError

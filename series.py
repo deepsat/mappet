@@ -6,12 +6,12 @@ import typing
 import numpy as np
 import cv2
 
-from transforms import warp_perspective
+from transforms import warp_perspective, fit_homography, fit_even_similarity
 from geodesy import LocalTangentPlane
 from stitching import occ_mask
 from photo import DronePhoto
 from map_photo import MapPhoto
-from feature_matching import find_keypoint_matches, compute_homography, compute_even_similarity
+from feature_matching import find_keypoint_matches
 
 
 class RelativeSeries:
@@ -35,9 +35,9 @@ class RelativeSeries:
         if len(self.photos) >= 2:
             src, dst = find_keypoint_matches(self.photos[-2].image, self.photos[-1].image)
             if rel_method == 'homography':
-                def get(): return compute_homography(src, dst)[0]
+                def get(): return fit_homography(src, dst)[0]
             elif rel_method == 'even_similarity':
-                def get(): return compute_even_similarity(src, dst)[0]
+                def get(): return fit_even_similarity(src, dst)[0]
             else:
                 raise ValueError("No such relativity method")
             self.next_transform.append(get())
@@ -106,10 +106,7 @@ class RelativeSeries:
         x = np.array([complex(*self.warped_center(i)) for i in range(len(self.photos))])
         x1 = np.column_stack((x, np.ones(len(self.photos))))
         y = np.array([complex(photo.metadata.x, photo.metadata.y) for photo in self.photos])
-        (m, c), r = np.linalg.lstsq(x1, y, rcond=None)[:2]
-        print(list(m*x + c))
-        print(list(y))
-        print(np.linalg.norm((m*x + c) - y, 2), r[0]**.5, np.abs((m*x + c) - y).mean())
+        m, c = np.linalg.lstsq(x1, y, rcond=None)
         return np.array([
             m.real, -m.imag, c.real,
             m.imag,  m.real, c.imag,
