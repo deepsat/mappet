@@ -17,7 +17,7 @@ class Frame:
     position: typing.Tuple[float, float, float]
     datetime: datetime.datetime
 
-    def __init__(self, image: np.array, altitude: float, position: typing.Tuple[float, float, float], datetime_):
+    def __init__(self, image: np.array, altitude: float, position: typing.Tuple[float, float, float], dt):
         self.image, self.altitude, self.position, self.datetime = image, altitude, position, dt
 
     def __repr__(self) -> str:
@@ -70,7 +70,7 @@ def frames_at(indices : typing.List[int], filename: str, sub_filename: typing.Op
     return result
 
 
-def get_drone_photos(indices : typing.List[int], filename: str, sub_filename: typing.Optional[str] = None,
+def get_drone_photos(indices: typing.List[int], filename: str, sub_filename: typing.Optional[str] = None,
                      silent: bool = True) -> typing.List[DronePhoto]:
     frames = frames_at(indices, filename, sub_filename, silent)
     return [DronePhoto(

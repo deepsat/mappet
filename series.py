@@ -24,7 +24,7 @@ class RelativeSeries:
 
     def __init__(self, local_latitude: float, local_longitude: float, ref_height: float):
         self.local_latitude, self.local_longitude, self.ref_height = local_latitude, local_longitude, ref_height
-        self.plane = LocalTangentPlane(self.local_latitude, self.local_latitude, 0)
+        self.plane = LocalTangentPlane(self.local_latitude, self.local_longitude, 0)
         self.photos = []
         self.next_transform = []
 
@@ -45,13 +45,20 @@ class RelativeSeries:
     def transform(self, i: int) -> np.array:
         return functools.reduce(operator.matmul, self.next_transform[:i], np.identity(3))
 
-    def quad(self, i: int) -> np.array:
+    def quad(self, i: int, margin: int = 0) -> np.array:
         h, w = self.photos[i].image.shape[:2]
-        pts = ((0, 0), (w, 0), (w, h), (0, h))
+        pts = ((-margin, -margin), (w + margin, -margin), (w + margin, h + margin), (-margin, h + margin))
         return np.array([warp_perspective(self.transform(i), pt) for pt in pts])
 
-    def bounds(self, i: typing.Optional[int] = None) -> typing.Tuple[int, int, int, int]:
-        q = np.array([self.quad(i) for i in range(len(self.photos))]).reshape(-1, 2) if i is None else self.quad(i)
+    def warped_center(self, i: int) -> typing.Tuple[float, float]:
+        h, w = self.photos[i].image.shape[:2]
+        return warp_perspective(self.transform(i), (w//2, h//2))
+
+    def bounds(self, i: typing.Optional[int] = None, margin: int = 0) -> typing.Tuple[int, int, int, int]:
+        if i is None:
+            q = np.array([self.quad(i, margin) for i in range(len(self.photos))]).reshape(-1, 2)
+        else:
+            q = self.quad(i, margin)
         return (
             math.floor(q[:, 0].min()), math.ceil(q[:, 0].max()),
             math.floor(q[:, 1].min()), math.ceil(q[:, 1].max())
@@ -67,6 +74,22 @@ class RelativeSeries:
         w, h = x_max-x_min+1, y_max-y_min+1
         return (x_min, y_min, w, h), cv2.warpPerspective(self.photos[i].image, shift @ self.transform(i), (w, h))
 
+    def warped_contour(self, i: int, thickness: int):
+        x_min, x_max, y_min, y_max = self.bounds(i, thickness)
+        shift = np.array([
+            [1, 0, -x_min],
+            [0, 1, -y_min],
+            [0, 0, 1]
+        ], dtype=np.float64)
+        w, h = x_max-x_min+1, y_max-y_min+1
+        h0, w0, c0 = self.photos[i].image.shape
+        ctr = np.zeros((h0 + 2 * thickness, w0 + 2 * thickness, c0))
+        ctr[:, :+2*thickness] = [255, 255, 255]
+        ctr[:, -2*thickness:] = [255, 255, 255]
+        ctr[:+2*thickness, :] = [255, 255, 255]
+        ctr[-2*thickness:, :] = [255, 255, 255]
+        return (x_min, y_min, w, h), cv2.warpPerspective(ctr, shift @ self.transform(i), (w, h))
+
     def stitch(self) -> np.array:
         x_min, x_max, y_min, y_max = self.bounds()
         result = np.zeros((round(y_max-y_min+1), round(x_max-x_min+1), 3), dtype=np.uint8)
@@ -80,7 +103,18 @@ class RelativeSeries:
         return result
 
     def fit_im_to_enu(self) -> np.array:
-        raise NotImplementedError
+        x = np.array([complex(*self.warped_center(i)) for i in range(len(self.photos))])
+        x1 = np.column_stack((x, np.ones(len(self.photos))))
+        y = np.array([complex(photo.metadata.x, photo.metadata.y) for photo in self.photos])
+        (m, c), r = np.linalg.lstsq(x1, y, rcond=None)[:2]
+        print(list(m*x + c))
+        print(list(y))
+        print(np.linalg.norm((m*x + c) - y, 2), r[0]**.5, np.abs((m*x + c) - y).mean())
+        return np.array([
+            m.real, -m.imag, c.real,
+            m.imag,  m.real, c.imag,
+            0, 0, 1
+        ])
 
 
 if __name__ == '__main__':
@@ -94,7 +128,8 @@ if __name__ == '__main__':
     lat, lng, lh = photos[0].metadata.latitude, photos[0].metadata.longitude, photos[0].metadata.height
 
     series = RelativeSeries(lat, lng, lh)
-    for p in tqdm.tqdm(photos):
-        series.append(p)
+    for ph in tqdm.tqdm(photos):
+        series.append(ph)
 
     cv2.imwrite('test/stitch.png', series.stitch())
+    im_to_enu = series.fit_im_to_enu()

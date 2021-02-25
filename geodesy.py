@@ -42,6 +42,7 @@ class LocalTangentPlane:
 
 if __name__ == '__main__':
     rad = math.radians
+    print(rad(52.284509), rad(20.804014), 10)
     plane = LocalTangentPlane(rad(52.284509), rad(20.804014), 10)
     print(plane.enu(rad(52.284509), rad(20.804014), 10))
     print(plane.enu(rad(52.284509), rad(20.804014), 50))
