@@ -1,3 +1,4 @@
+import logging
 import functools
 import operator
 import math
@@ -12,6 +13,13 @@ from stitching import occ_mask
 from photo import DronePhoto
 from map_photo import MapPhoto
 from feature_matching import find_keypoint_matches
+from logging_util import timed_log
+
+log = logging.getLogger('mappet.series')
+rel_methods = {
+    'homography': fit_homography_robust,
+    'even_similarity': fit_even_similarity_robust
+}
 
 
 class RelativeSeries:
@@ -29,19 +37,13 @@ class RelativeSeries:
         self.next_transform = []
 
     def append(self, photo: DronePhoto, rel_method: str = 'homography'):
-        self.photos.append(MapPhoto.from_drone_photo(
-            photo, self.plane, self.ref_height
-        ))
-        if len(self.photos) >= 2:
-            src, dst = find_keypoint_matches(self.photos[-2].image, self.photos[-1].image)
-            if rel_method == 'homography':
-                def get(): return fit_homography_robust(src, dst)[0]
-            elif rel_method == 'even_similarity':
-                def get(): return fit_even_similarity_robust(src, dst)[0]
-            else:
-                raise ValueError("No such relativity method")
-            fit_even_similarity_robust(src, dst)
-            self.next_transform.append(get())
+        with timed_log(log.info, f'Appending photo {len(self.photos)} to RelativeSeries took {{time:.3f}}s'):
+            self.photos.append(MapPhoto.from_drone_photo(
+                photo, self.plane, self.ref_height
+            ))
+            if len(self.photos) >= 2:
+                src, dst = find_keypoint_matches(self.photos[-2].image, self.photos[-1].image)
+                self.next_transform.append(rel_methods[rel_method](src, dst)[0])
 
     def transform(self, i: int) -> np.array:
         return functools.reduce(operator.matmul, self.next_transform[:i], np.identity(3))
@@ -103,7 +105,9 @@ class RelativeSeries:
             result[y:y+h, x:x+w][mask] = image[mask]
         return result
 
-    def fit_im_to_enu(self) -> np.array:
+    def fit_im_to_enu(self) -> typing.Optional[np.array]:
+        if len(self.photos) < 2:
+            return None
         xp = np.array([self.warped_center(i) for i in range(len(self.photos))])
         yp = np.array([(photo.metadata.x, photo.metadata.y) for photo in self.photos])
         return fit_even_similarity_c(xp, yp)
@@ -112,10 +116,16 @@ class RelativeSeries:
 if __name__ == '__main__':
     import tqdm
     from drone_test_data import get_drone_photos
+
+    logging.basicConfig(
+        filename='test/latest.log', encoding='utf-8', level=logging.DEBUG,
+        format='[%(levelname)s::%(name)s@%(relativeCreated)dms] %(message)s'
+    )
+
     FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
     SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-    n = 10
+    n = 40
     phs = get_drone_photos(
         ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
         FILENAME, SUB_FILENAME, silent=False
@@ -124,7 +134,7 @@ if __name__ == '__main__':
 
     series = RelativeSeries(lat, lng, lh)
     for ph in tqdm.tqdm(phs):
-        series.append(ph, rel_method='homography')
+        series.append(ph, rel_method='even_similarity')
 
     cv2.imwrite('test/stitch.png', series.stitch())
     im_to_enu = series.fit_im_to_enu()

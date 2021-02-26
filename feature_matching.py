@@ -1,10 +1,13 @@
+import logging
 import functools
 import typing
 
 import numpy as np
 import cv2
 
-default_key_detect = cv2.ORB_create(nfeatures=2**13)
+log = logging.getLogger('mappet.feature_matching')
+
+default_key_detect = cv2.ORB_create(nfeatures=2**12)
 default_desc_detect = cv2.SIFT_create()
 default_matcher = cv2.FlannBasedMatcher({'algorithm': 1, 'trees': 4}, {'checks': 64})
 
@@ -28,6 +31,7 @@ def find_keypoint_matches(first: np.array, second: np.array, *, lowe_coefficient
     matches = [m for m, n in matches if m.distance < lowe_coefficient * n.distance]
     src = np.array([second_key[match.queryIdx].pt for match in matches]).reshape((-1, 2))
     dst = np.array([first_key[match.trainIdx].pt for match in matches]).reshape((-1, 2))
+    log.debug(f"find_keypoint_matches: ({len(first_key)}, {len(second_key)}) keypoints yielded {len(matches)} matches")
     return src, dst
 
 
