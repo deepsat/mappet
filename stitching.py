@@ -63,7 +63,7 @@ def last_come(images: typing.Iterable[np.array]) -> np.array:
     it = iter(images)
     out = next(it)
     for curr in images:
-        mask = occ_mask(curr).astype(bool)
+        mask = occ_mask(curr)
         out[mask] = curr[mask]
     return out
 
@@ -81,9 +81,29 @@ def weighted_average(images: typing.List[np.array], mask: typing.Callable[[int],
 
 
 def occ_mask(image: np.array) -> np.array:
-    m = (image != 0).all(axis=-1).astype(np.uint8)
+    m = (image != 0).any(axis=-1).astype(np.uint8)
     m &= np.pad(m, ((0, 0), (1, 0)), mode='constant')[:, :-1]
     m &= np.pad(m, ((0, 0), (0, 1)), mode='constant')[:, +1:]
     m &= np.pad(m, ((1, 0), (0, 0)), mode='constant')[:-1, :]
     m &= np.pad(m, ((0, 1), (0, 0)), mode='constant')[+1:, :]
-    return m
+    return m.astype(np.bool)
+
+
+def lay_over(image: np.array, x1: int, y1: int, dest: np.array):
+    # Zero pixels are transparent, according to occ_mask rules
+    x2, y2 = x1 + image.shape[1], y1 + image.shape[0]
+    w, h = dest.shape[1], dest.shape[0]
+    xa, xb, ya, yb = max(-x1, 0), max(x2 - w, 0), max(-y1, 0), max(y2 - h, 0)
+    x1, x2, y1, y2 = x1 + xa, x2 - xb, y1 + ya, y2 - yb
+    image = image[ya:image.shape[0] - yb, xa:image.shape[1] - xb]
+    mask = occ_mask(image)
+    dest[y1:y2, x1:x2][mask] = image[mask]
+
+
+def lay_on_canvas(bounds: typing.Tuple[int, int, int, int], warp_gen) -> np.array:
+    x_min, x_max, y_min, y_max = bounds
+    w, h = x_max - x_min + 1, y_max - y_min + 1
+    result = np.zeros((h, w, 3), dtype=np.uint8)
+    for (x1, y1), image in warp_gen:
+        lay_over(image, x1 - x_min, y1 - y_min, result)
+    return result
