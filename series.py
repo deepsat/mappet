@@ -6,7 +6,7 @@ import typing
 import numpy as np
 import cv2
 
-from transforms import warp_perspective, fit_homography_robust, fit_even_similarity, fit_even_similarity_robust
+from transforms import warp_perspective, fit_homography_robust, fit_even_similarity_c, fit_even_similarity_robust
 from geodesy import LocalTangentPlane
 from stitching import occ_mask
 from photo import DronePhoto
@@ -104,18 +104,9 @@ class RelativeSeries:
         return result
 
     def fit_im_to_enu(self) -> np.array:
-        xp = (self.warped_center(i) for i in range(len(self.photos)))
-        yp = ((photo.metadata.x, photo.metadata.y) for photo in self.photos)
-        x = np.array([complex(re, im) for re, im in xp])
-        y = np.array([complex(re, im) for re, im in yp])
-        x1 = np.column_stack((x, np.ones(len(self.photos))))
-        m, c = np.linalg.lstsq(x1, y, rcond=None)[0]
-        e = (m*x + c) - y
-        print('epsilon', np.abs(e))
-        print('error mean', np.abs(e).mean())
-        print('error stddev', np.std(np.abs(e)))
-        print('error median', np.median(np.abs(e)))
-        return m, c
+        xp = np.array([self.warped_center(i) for i in range(len(self.photos))])
+        yp = np.array([(photo.metadata.x, photo.metadata.y) for photo in self.photos])
+        return fit_even_similarity_c(xp, yp)
 
 
 if __name__ == '__main__':
@@ -124,7 +115,7 @@ if __name__ == '__main__':
     FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
     SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-    n = 40
+    n = 10
     phs = get_drone_photos(
         ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
         FILENAME, SUB_FILENAME, silent=False
