@@ -32,7 +32,7 @@ for ph in tqdm.tqdm(phs):
 im_to_enu = series.fit_im_to_enu()
 
 img_k = phs[0].image.copy()
-cv2.drawKeypoints(img_k, feature_matching.get_features(img_k)[0], img_k, color=(255, 255, 0))
+cv2.drawKeypoints(img_k, feature_matching.get_features(img_k)[0], img_k, color=(0, 0, 255))
 cv2.imwrite('test/keypoints.png', img_k)
 cv2.imwrite('test/warp-ctr.png', series.warped_contour(1, 5, (0, 255, 0))[1])
 img = series.stitch()
