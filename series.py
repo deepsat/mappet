@@ -6,7 +6,7 @@ import typing
 import numpy as np
 import cv2
 
-from transforms import warp_perspective, fit_homography, fit_even_similarity
+from transforms import warp_perspective, fit_homography_robust, fit_even_similarity, fit_even_similarity_robust
 from geodesy import LocalTangentPlane
 from stitching import occ_mask
 from photo import DronePhoto
@@ -35,11 +35,12 @@ class RelativeSeries:
         if len(self.photos) >= 2:
             src, dst = find_keypoint_matches(self.photos[-2].image, self.photos[-1].image)
             if rel_method == 'homography':
-                def get(): return fit_homography(src, dst)[0]
+                def get(): return fit_homography_robust(src, dst)[0]
             elif rel_method == 'even_similarity':
-                def get(): return fit_even_similarity(src, dst)[0]
+                def get(): return fit_even_similarity_robust(src, dst)[0]
             else:
                 raise ValueError("No such relativity method")
+            fit_even_similarity_robust(src, dst)
             self.next_transform.append(get())
 
     def transform(self, i: int) -> np.array:
@@ -103,15 +104,18 @@ class RelativeSeries:
         return result
 
     def fit_im_to_enu(self) -> np.array:
-        x = np.array([complex(*self.warped_center(i)) for i in range(len(self.photos))])
+        xp = (self.warped_center(i) for i in range(len(self.photos)))
+        yp = ((photo.metadata.x, photo.metadata.y) for photo in self.photos)
+        x = np.array([complex(re, im) for re, im in xp])
+        y = np.array([complex(re, im) for re, im in yp])
         x1 = np.column_stack((x, np.ones(len(self.photos))))
-        y = np.array([complex(photo.metadata.x, photo.metadata.y) for photo in self.photos])
         m, c = np.linalg.lstsq(x1, y, rcond=None)[0]
-        return np.array([
-            m.real, -m.imag, c.real,
-            m.imag,  m.real, c.imag,
-            0, 0, 1
-        ])
+        e = (m*x + c) - y
+        print('epsilon', np.abs(e))
+        print('error mean', np.abs(e).mean())
+        print('error stddev', np.std(np.abs(e)))
+        print('error median', np.median(np.abs(e)))
+        return m, c
 
 
 if __name__ == '__main__':
@@ -120,13 +124,16 @@ if __name__ == '__main__':
     FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
     SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-    n = 25
-    photos = get_drone_photos(([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n], FILENAME, SUB_FILENAME, silent=False)
-    lat, lng, lh = photos[0].metadata.latitude, photos[0].metadata.longitude, photos[0].metadata.height
+    n = 40
+    phs = get_drone_photos(
+        ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
+        FILENAME, SUB_FILENAME, silent=False
+    )
+    lat, lng, lh = phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height
 
     series = RelativeSeries(lat, lng, lh)
-    for ph in tqdm.tqdm(photos):
-        series.append(ph)
+    for ph in tqdm.tqdm(phs):
+        series.append(ph, rel_method='homography')
 
     cv2.imwrite('test/stitch.png', series.stitch())
     im_to_enu = series.fit_im_to_enu()

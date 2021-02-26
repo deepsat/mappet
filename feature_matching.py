@@ -26,8 +26,8 @@ def find_keypoint_matches(first: np.array, second: np.array, *, lowe_coefficient
     second_key, second_desc = get_features(second)
     matches = matcher.knnMatch(second_desc, first_desc, k=2)
     matches = [m for m, n in matches if m.distance < lowe_coefficient * n.distance]
-    src = np.array([second_key[match.queryIdx].pt for match in matches]).reshape((-1, 1, 2))
-    dst = np.array([first_key[match.trainIdx].pt for match in matches]).reshape((-1, 1, 2))
+    src = np.array([second_key[match.queryIdx].pt for match in matches]).reshape((-1, 2))
+    dst = np.array([first_key[match.trainIdx].pt for match in matches]).reshape((-1, 2))
     return src, dst
 
 
