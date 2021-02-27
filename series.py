@@ -77,23 +77,30 @@ class RelativeSeries:
         w, h = x_max - x_min + 1, y_max - y_min + 1
         return (x_min, y_min), cv2.warpPerspective(self.photos[i].image, shift @ self.transform(i), (w, h))
 
-    def warped_contour(self, i: int, thickness: int, color: typing.Tuple[int, int, int] = (255, 255, 255),
-                       fill_value: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
-        x_min0, x_max0, y_min0, y_max0 = self.bounds(i)
-        x_min, x_max, y_min, y_max = self.bounds(i, thickness)
+    def warped_image(self, i: int, image: np.array, margin: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
+        x_min, x_max, y_min, y_max = self.bounds(i, margin)
         shift = np.array([
-            [1, 0, -x_min0],
-            [0, 1, -y_min0],
+            [1, 0, -x_min],
+            [0, 1, -y_min],
+            [0, 0, 1]
+        ], dtype=np.float64)
+        margin_shift = np.array([
+            [1, 0, -margin],
+            [0, 1, -margin],
             [0, 0, 1]
         ], dtype=np.float64)
         w, h = x_max-x_min+1, y_max-y_min+1
+        return (x_min, y_min), cv2.warpPerspective(image, shift @ self.transform(i) @ margin_shift, (w, h))
+
+    def warped_contour(self, i: int, thickness: int, color: typing.Tuple[int, int, int] = (255, 255, 255),
+                       fill_value: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
         h0, w0, c0 = self.photos[i].image.shape
         ctr = np.full((h0 + 2 * thickness, w0 + 2 * thickness, c0), fill_value, dtype=np.uint8)
         ctr[:, :+2*thickness] = color
         ctr[:, -2*thickness:] = color
         ctr[:+2*thickness, :] = color
         ctr[-2*thickness:, :] = color
-        return (x_min, y_min), cv2.warpPerspective(ctr, shift @ self.transform(i), (w, h))
+        return self.warped_image(i, ctr, thickness)
 
     def stitch(self) -> np.array:
         return stitching.lay_on_canvas(self.bounds(), (self.warped(i) for i in range(len(self.photos))))
