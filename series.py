@@ -38,7 +38,7 @@ class RelativeSeries:
     """
     Interface of a photo series, where photo placement data is only inferred from feature matching and metadata
     is only used for verification. The images are to be added on-line and are matched against the last photo, with
-    the assumption that the intersection is close-enough.
+    the assumption that the intersection is good-enough.
     """
     local_latitude: float
     local_longitude: float
