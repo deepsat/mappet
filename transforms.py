@@ -50,10 +50,7 @@ def fit_homography_robust(x: np.array, y: np.array, threshold: float = 5.0) -> t
 def fit_even_similarity_c(x0: np.array, y0: np.array) -> typing.Tuple[complex, complex]:
     x, y = real2_to_complex(x0), real2_to_complex(y0)
     x1 = np.column_stack((x, np.ones(x.shape[0])))
-    m, c = np.linalg.lstsq(x1, y, rcond=None)[0]
-    err = np.abs((m*x + c) - y)
-    # log.debug(f"fit_even_similarity_c: {err.mean()=}, {err.max()=}, {np.median(err)=}, {np.std(err)=}")
-    return m, c
+    return np.linalg.lstsq(x1, y, rcond=None)[0]
 
 
 def fit_even_similarity(x0: np.array, y0: np.array) -> np.array:

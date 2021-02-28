@@ -147,9 +147,13 @@ class RelativeSeries:
             result[(result == 1).all(axis=-1)] = (0, 0, 0)
         return result
 
-    def fit_im_to_enu(self) -> typing.Optional[np.array]:
+    def fit_im_to_enu(self) -> typing.Optional[typing.Tuple[complex, complex]]:
         if len(self.photos) < 2:
             return None
         xp = np.array([self.warped_center(i) for i in range(len(self.photos))])
         yp = np.array([(photo.metadata.x, photo.metadata.y) for photo in self.photos])
-        return transforms.fit_even_similarity_c(xp, yp)
+        m, c = transforms.fit_even_similarity_c(xp, yp)
+        x, y = transforms.real2_to_complex(xp), transforms.real2_to_complex(yp)
+        err = np.abs((m * x + c) - y)
+        log.info(f"RelativeSeries.fit_im_to_enu: {err.mean()=}, {err.max()=}, {np.median(err)=}, {np.std(err)=}")
+        return m, c

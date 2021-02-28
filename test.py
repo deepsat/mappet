@@ -32,8 +32,6 @@ series = RelativeSeries(lat, lng, lh)
 for ph in tqdm.tqdm(phs):
     series.append(ph, rel_method='even_similarity')
 
-im_to_enu = series.fit_im_to_enu()
-
 
 def segmentation():
     segs = []
