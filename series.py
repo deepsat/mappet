@@ -10,6 +10,7 @@ import cv2
 import stitching
 import feature_matching
 import transforms
+import geometry as geo
 from geodesy import LocalTangentPlane
 from photo import DronePhoto
 from map_photo import MapPhoto
@@ -20,6 +21,12 @@ rel_fit_methods = {
     'homography': transforms.fit_homography_robust,
     'even_similarity': transforms.fit_even_similarity_robust
 }
+
+def poly_bounds(points):
+    return (
+        math.floor(points[:, 0].min()), math.ceil(points[:, 0].max()),
+        math.floor(points[:, 1].min()), math.ceil(points[:, 1].max())
+    )
 
 
 class RelativeSeries:
@@ -37,7 +44,7 @@ class RelativeSeries:
         self.next_transform = []
 
     def append(self, photo: DronePhoto, rel_method: str = 'homography'):
-        with timed_log(log.info, f'Appending photo {len(self.photos)} to RelativeSeries took {{time:.3f}}s'):
+        with timed_log(log.info, f'RelativeSeries.append: Photo {len(self.photos)} took {{time:.3f}}s'):
             self.photos.append(MapPhoto.from_drone_photo(
                 photo, self.plane, self.ref_height
             ))
@@ -62,22 +69,42 @@ class RelativeSeries:
             q = np.array([self.quad(i, margin) for i in range(len(self.photos))]).reshape(-1, 2)
         else:
             q = self.quad(i, margin)
-        return (
-            math.floor(q[:, 0].min()), math.ceil(q[:, 0].max()),
-            math.floor(q[:, 1].min()), math.ceil(q[:, 1].max())
-        )
+        return poly_bounds(q)
 
-    def warped(self, i: int) -> typing.Tuple[typing.Tuple[int, int], np.array]:
-        x_min, x_max, y_min, y_max = self.bounds(i)
-        shift = np.array([
-            [1, 0, -x_min],
-            [0, 1, -y_min],
-            [0, 0, 1]
-        ], dtype=np.float64)
-        w, h = x_max - x_min + 1, y_max - y_min + 1
-        return (x_min, y_min), cv2.warpPerspective(self.photos[i].image, shift @ self.transform(i), (w, h))
+    def tile_covering(self, b=128):
+        n = len(self.photos)
+        polys = [geo.PolygonI(self.quad(i)) for i in range(n)]
+        x_min, x_max, y_min, y_max = self.bounds()
+        x_min, y_min = x_min - b, y_min - b
+        x_max, y_max = x_max + b, y_max + b
+        i_shift, j_shift = (x_min + b - 1)//b, (y_min + b - 1)//b
+        i_count, j_count = x_max//b - i_shift, y_max//b - j_shift
+        log.debug(f"RelativeSeries.tile_covering: {x_min=}..{x_max=} {y_min=}..{y_max=}")
+        log.debug(f"RelativeSeries.tile_covering: {i_shift=} {i_count=} {j_shift=} {j_count=}")
 
-    def warped_image(self, i: int, image: np.array, margin: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
+        def get_square(i, j):
+            v = np.array(((i + i_shift) * b, (j + j_shift) * b))
+            return np.array((v, v + [0, b], v + [b, b], v + [b, 0]))
+
+        import tqdm
+        grid = [[get_square(i, j) for j in range(j_count)] for i in range(i_count)]
+        covers = [[] for _ in range(n)]
+        for k, poly in tqdm.tqdm(enumerate(polys), total=n):
+            cx_min, cx_max, cy_min, cy_max = poly_bounds(np.array(poly.vertices))
+            i_min, i_max = cx_min // b - i_shift - 3, cx_max // b - i_shift + 3
+            j_min, j_max = cy_min // b - j_shift - 3, cy_max // b - j_shift + 3
+            c0, c1 = 0, 0
+            for i in range(max(i_min, 0), min(i_max + 1, i_count)):
+                for j in range(max(j_min, 0), min(j_max + 1, j_count)):
+                    if poly.contains(geo.PolygonI(tuple(grid[i][j]))):
+                        covers[k].append([i, j])
+                        c1 += 1
+                    c0 += 1
+            log.info(f"RelativeSeries.tile_covering: Photo polygon {k} covers {c1} tiles ({c0} candidates)")
+
+        return covers, get_square
+
+    def warped(self, i: int, image: np.array, margin: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
         x_min, x_max, y_min, y_max = self.bounds(i, margin)
         shift = np.array([
             [1, 0, -x_min],
@@ -92,6 +119,9 @@ class RelativeSeries:
         w, h = x_max-x_min+1, y_max-y_min+1
         return (x_min, y_min), cv2.warpPerspective(image, shift @ self.transform(i) @ margin_shift, (w, h))
 
+    def warped_photo(self, i: int) -> typing.Tuple[typing.Tuple[int, int], np.array]:
+        return self.warped(i, self.photos[i].image)
+
     def warped_contour(self, i: int, thickness: int, color: typing.Tuple[int, int, int] = (255, 255, 255),
                        fill_value: int = 0) -> typing.Tuple[typing.Tuple[int, int], np.array]:
         h0, w0, c0 = self.photos[i].image.shape
@@ -100,10 +130,10 @@ class RelativeSeries:
         ctr[:, -2*thickness:] = color
         ctr[:+2*thickness, :] = color
         ctr[-2*thickness:, :] = color
-        return self.warped_image(i, ctr, thickness)
+        return self.warped(i, ctr, thickness)
 
     def stitch(self) -> np.array:
-        return stitching.lay_on_canvas(self.bounds(), (self.warped(i) for i in range(len(self.photos))))
+        return stitching.lay_on_canvas(self.bounds(), (self.warped_photo(i) for i in range(len(self.photos))))
 
     def stitch_contours(self, thickness: int, color: typing.Tuple[int, int, int] = (255, 255, 255),
                         fill_in: bool = False, extend_bounds=False) -> np.array:

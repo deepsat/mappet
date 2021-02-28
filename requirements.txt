@@ -1,3 +1,5 @@
 tqdm
 numpy
 opencv-python
+tensorflow
+keras_segmentation
