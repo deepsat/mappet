@@ -5,6 +5,9 @@ import cv2
 
 
 class DroneCamera:
+    """
+    A camera's properties measured using external calibration tools.
+    """
     camera_calibration: typing.Tuple[np.array, np.array]
     view_angles: typing.Tuple[float, float]
 
@@ -16,6 +19,12 @@ class DroneCamera:
         return f"DroneCamera(calibration={'[ ... ]' if self.calibration is not None else 'None'}, view_angles={self.view_angles})"
 
     def undistort(self, image: np.array) -> np.array:
+        """
+        Undistort an image using the lens aberration model
+        (as per https://docs.opencv.org/3.4/d4/d94/tutorial_camera_calibration.html)
+        :param image: Image to undistort.
+        :return: Undistorted image.
+        """
         mtx, dist = self.camera_calibration
         h, w = image.shape[:2]
         mtx1, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))

@@ -12,12 +12,19 @@ log = logging.getLogger('mappet.geodesy')
 
 def _degree_warn(latitude, longitude):
     if abs(latitude) > math.tau:
-        log.warning(f"Did you use degrees? The value latitude={latitude} exceeds the expected range of radians.")
+        log.warning(f"Did you use degrees? The value {latitude=} exceeds the expected range of radians.")
     if abs(longitude) > math.tau:
-        log.warning(f"Did you use degrees? The value longitude={longitude} exceeds the expected range of radians.")
+        log.warning(f"Did you use degrees? The value {longitude=} exceeds the expected range of radians.")
 
 
 def geodetic_to_ecef(latitude: float, longitude: float, height: float) -> typing.Tuple[float, float, float]:
+    """
+    Converts spherical (geodetic) coordinates to ECEF coordinates (Cartesian where zero is the Earth's center)
+    :param latitude: Latitude in radians.
+    :param longitude: Longitude in radians.
+    :param height: Height above sea level in meters.
+    :return: ECEF (x, y, z) coordinates in meters.
+    """
     _degree_warn(latitude, longitude)
     r = A**2 / math.sqrt((A * math.cos(latitude))**2 + (B * math.sin(latitude))**2)
     t = (r + height) * math.cos(latitude)
@@ -25,6 +32,9 @@ def geodetic_to_ecef(latitude: float, longitude: float, height: float) -> typing
 
 
 class LocalTangentPlane:
+    """
+    Local tangent plane at a given point given in geodetic coordinates.
+    """
     latitude: float
     longitude: float
     height: float
@@ -37,6 +47,13 @@ class LocalTangentPlane:
         return f"LocalTangentPlane(latitude={self.latitude}, longitude={self.longitude}, height={self.height})"
 
     def enu(self, latitude: float, longitude: float, height: float) -> typing.Tuple[float, float, float]:
+        """
+        :param latitude: Latitude in radians.
+        :param longitude: Longitude in radians.
+        :param height: Height above sea level in meters.
+        :return: ENU (East, North, Up) coordinates in meters. Notice the orientation of the system is the same for
+        (x, y) image coordinates.
+        """
         _degree_warn(latitude, longitude)
         x0, y0, z0 = geodetic_to_ecef(self.latitude, self.longitude, self.height)
         x, y, z = geodetic_to_ecef(latitude, longitude, height)

@@ -9,6 +9,9 @@ OFloat = typing.Optional[float]
 
 
 class DroneCameraMetadata:
+    """
+    Full metadata of an aerial photo.
+    """
     latitude: OFloat
     longitude: OFloat
     height: OFloat
@@ -32,6 +35,9 @@ class DroneCameraMetadata:
 
 
 class DronePhoto:
+    """
+    Aggregate type for aerial photo data.
+    """
     image: np.array
     metadata: DroneCameraMetadata
 

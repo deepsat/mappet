@@ -15,6 +15,10 @@ OFloat = typing.Optional[float]
 
 
 class MapPhotoMetadata:
+    """
+    Metadata of a photo that is place-able on a map, acquired from measurements or TODO: inferred from other sources.
+    Some of the metadata may be missing or be insufficient to place the photo precisely.
+    """
     x: OFloat
     y: OFloat
     z: OFloat
@@ -43,6 +47,9 @@ class MapPhotoMetadata:
 
 
 class MapPhoto:
+    """
+    Photo with data necessary to place it on the map. TODO: absolutize existing constructs (replace RelativeSeries)
+    """
     image: np.array
     metadata: MapPhotoMetadata
     used_metadata: typing.Set[str]

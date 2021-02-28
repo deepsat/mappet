@@ -12,6 +12,9 @@ SUB_SEC_GAP = 1.0
 
 
 class Frame:
+    """
+    Represents information about a frame of the drone's camera footage.
+    """
     image: np.array
     altitude: float
     position: typing.Tuple[float, float, float]
