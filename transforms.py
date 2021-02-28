@@ -47,13 +47,16 @@ def fit_homography_robust(x: np.array, y: np.array, threshold: float = 5.0) -> t
     return homography.copy(), mask
 
 
-def fit_even_similarity_c(x0: np.array, y0: np.array):
+def fit_even_similarity_c(x0: np.array, y0: np.array) -> typing.Tuple[complex, complex]:
     x, y = real2_to_complex(x0), real2_to_complex(y0)
     x1 = np.column_stack((x, np.ones(x.shape[0])))
-    return np.linalg.lstsq(x1, y, rcond=None)[0]
+    m, c = np.linalg.lstsq(x1, y, rcond=None)[0]
+    err = np.abs((m*x + c) - y)
+    # log.debug(f"fit_even_similarity_c: {err.mean()=}, {err.max()=}, {np.median(err)=}, {np.std(err)=}")
+    return m, c
 
 
-def fit_even_similarity(x0: np.array, y0: np.array):
+def fit_even_similarity(x0: np.array, y0: np.array) -> np.array:
     return complex_to_augmented_transform(*fit_even_similarity_c(x0, y0))
 
 
@@ -66,9 +69,10 @@ def fit_even_similarity_robust(x0: np.array, y0: np.array, threshold: float = 5.
         sample = np.random.choice(n, sample_size, replace=False)
         s_m, s_c = fit_even_similarity_c(x0[sample], y0[sample])
         s_mask = np.abs((s_m * x + s_c) - y) < threshold
-        m, c = fit_even_similarity_c(x0[s_mask], y0[s_mask])
-        mask = np.abs((m * x + c) - y) < threshold
-        result = max(result, (mask.sum() / n, complex_to_augmented_transform(m, c), mask), key=lambda v: v[0])
+        if s_mask.sum() >= sample_size:
+            m, c = fit_even_similarity_c(x0[s_mask], y0[s_mask])
+            mask = np.abs((m * x + c) - y) < threshold
+            result = max(result, (mask.sum() / n, complex_to_augmented_transform(m, c), mask), key=lambda v: v[0])
     _, transform, mask = result
     log.debug(f"fit_even_similarity_robust: {100 * mask.sum() / x.shape[0]:.2f}% inliers ({mask.sum()}/{x.shape[0]})")
     if mask.sum() / x.shape[0] < 0.4 or x.shape[0] < 100:

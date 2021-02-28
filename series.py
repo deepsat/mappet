@@ -71,7 +71,9 @@ class RelativeSeries:
             q = self.quad(i, margin)
         return poly_bounds(q)
 
-    def tile_covering(self, b=128):
+    def tile_covering(self, b: int = 128) \
+            -> typing.Tuple[typing.List[typing.List[typing.Tuple[int, int]]],
+                            typing.Callable[[typing.Tuple[int, int]], np.array]]:
         n = len(self.photos)
         polys = [geo.PolygonI(self.quad(i)) for i in range(n)]
         x_min, x_max, y_min, y_max = self.bounds()
