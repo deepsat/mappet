@@ -17,13 +17,13 @@ logging.basicConfig(
     format='[%(levelname)s::%(name)s@%(relativeCreated)dms] %(message)s'
 )
 
-FILENAME = '/run/media/kubin/Common/deepsat/drone2.MP4'
-SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone2.SRT'
+FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
+SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-n = 50
+n = 3
 phs = get_drone_photos(
-    # ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
-    tuple(range(3000, 3000+n*50, 25))[:n],
+    ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
+    # tuple(range(3000, 3000+n*50, 25))[:n],
     FILENAME, SUB_FILENAME, silent=False
 )
 lat, lng, lh = phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height
@@ -103,6 +103,24 @@ def covering():
         for i, j in covers[k]:
             cv2.fillPoly(image, (get_square(i, j) - [x_min, y_min]).astype(np.int32).reshape((1, -1, 2)), (255, 255, 255))
         cv2.imwrite(f'test/ghosts/{k}.png', image)
+
+    order = stitching.solve_min_cover_ordering(covers, True)
+
+    img = stitching.lay_on_canvas(series.bounds(), (series.warped_photo(i) for i, _ in reversed(order)))
+    img2 = stitching.lay_on_canvas(series.bounds(), (series.warped_contour(i, 5, (255, 255, 0), 1) for i, _ in reversed(order)))
+    img2[(img2 == 1).all(axis=-1)] = [0, 0, 0]
+    img3 = img.copy()
+    stitching.lay_over(img2, 0, 0, img3)
+    cv2.imwrite('test/stitch-cov.png', img3)
+
+    layer = img3.copy()
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    for idx, (k, cov) in enumerate(order):
+        for i, j in cov:
+            cv2.fillPoly(layer, (get_square(i, j) - [x_min, y_min]).astype(np.int32).reshape((1, -1, 2)), colors[idx])
+    img4 = cv2.addWeighted(img3, 0.75, layer, 0.25, 0)
+    cv2.imwrite('test/stitch-cov-squares.png', img4)
+
 
 
 # print("Segmentation")

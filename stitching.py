@@ -14,7 +14,8 @@ def blurriness(image: np.array) -> float:
     return cv2.Laplacian(image, cv2.CV_64F).var()
 
 
-def solve_min_cover_ordering(covers: typing.Iterable[typing.Iterable[T]]) -> typing.List[typing.Tuple[int, int]]:
+def solve_min_cover_ordering(covers: typing.Iterable[typing.Iterable[T]], return_covered: bool = False) \
+        -> typing.List[typing.Tuple[int, typing.Union[int, typing.List[T]]]]:
     """
     :param covers: Greedy ordering of the input set covers such that each one covers the maximum number of uncovered
     objects.
@@ -32,7 +33,7 @@ def solve_min_cover_ordering(covers: typing.Iterable[typing.Iterable[T]]) -> typ
         for i in left:
             candy.append((len(covers[i]), i))
         c, i = max(candy)
-        result.append((i, len(covers[i])))
+        result.append((i, covers[i] if return_covered else len(covers[i])))
         covered |= covers[i]
         left.discard(i)
         for j in left:
