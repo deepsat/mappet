@@ -232,5 +232,6 @@ class RelativeSeries:
         m, c = transforms.fit_even_similarity_c(xp, yp)
         x, y = transforms.real2_to_complex(xp), transforms.real2_to_complex(yp)
         err = np.abs((m * x + c) - y)
+        print(err)
         log.info(f"RelativeSeries.fit_im_to_enu: {err.mean()=}, {err.max()=}, {np.median(err)=}, {np.std(err)=}")
         return m, c

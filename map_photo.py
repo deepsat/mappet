@@ -27,7 +27,7 @@ class MapPhotoMetadata:
     yaw: OFloat
     camera: typing.Optional[DroneCamera]
 
-    def __init__(self, n: OFloat, e: OFloat, u: OFloat, roll: OFloat, pitch: OFloat, yaw: OFloat,
+    def __init__(self, e: OFloat, n: OFloat, u: OFloat, roll: OFloat, pitch: OFloat, yaw: OFloat,
                  camera: typing.Optional[DroneCamera] = None):
         self.e, self.n, self.u = e, n, u
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
