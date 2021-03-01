@@ -18,12 +18,12 @@ class DroneCameraMetadata:
     roll: OFloat
     pitch: OFloat
     yaw: OFloat
-    curr_time: datetime.datetime
-    camera: DroneCamera
+    curr_time: typing.Optional[datetime.datetime]
+    camera: typing.Optional[DroneCamera]
 
-    def __init__(self, latitude: OFloat, longitude: OFloat, height: OFloat,
-                 roll: OFloat, pitch: OFloat, yaw: OFloat, curr_time: datetime.datetime,
-                 camera: typing.Optional[DroneCamera]):
+    def __init__(self, latitude: OFloat = None, longitude: OFloat = None, height: OFloat = None,
+                 roll: OFloat = None, pitch: OFloat = None, yaw: OFloat = None,
+                 curr_time: typing.Optional[datetime.datetime] = None, camera: typing.Optional[DroneCamera] = None):
         self.latitude, self.longitude, self.height = latitude, longitude, height
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
         self.curr_time, self.camera = curr_time, camera

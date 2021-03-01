@@ -1,3 +1,5 @@
+import math
+import glob
 import logging
 
 import tqdm
@@ -5,8 +7,11 @@ import numpy as np
 import cv2
 import tensorflow as tf
 import keras_segmentation
+import PIL
+import albumentations
 
 from drone_test_data import get_drone_photos
+from photo import DronePhoto, DroneCameraMetadata
 from series import RelativeSeries
 import feature_matching
 import stitching
@@ -20,17 +25,34 @@ logging.basicConfig(
 FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
 SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-n = 3
+n = 30
 phs = get_drone_photos(
     ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
     # tuple(range(3000, 3000+n*50, 25))[:n],
     FILENAME, SUB_FILENAME, silent=False
 )
-lat, lng, lh = phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height
+# print(sorted(glob.glob('test/seg-input/*.png')))
+# phs = [DronePhoto(cv2.imread(filename), DroneCameraMetadata()) for filename in sorted(glob.glob('test/seg-input/*.png'))[1]]
+
+if all(v is not None for v in (phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height)):
+    lat, lng, lh = phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height
+else:
+    lat, lng, lh = math.radians(52.220202), math.radians(21.002876), 100
 
 series = RelativeSeries(lat, lng, lh)
 for ph in tqdm.tqdm(phs):
     series.append(ph, rel_method='even_similarity')
+
+
+def preprocess(image):
+    img = PIL.Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    converter = PIL.ImageEnhance.Color(img)
+    img = converter.enhance(3)
+    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    aug = albumentations.CLAHE(p=0.7)
+    img = aug(image=img)['image']
+    img = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+    return img
 
 
 def segmentation():
@@ -51,10 +73,11 @@ def segmentation():
         mx, my = (w % 256) // 256, (h % 256) // 256
         tiles = []
         remap = []
+        pp = preprocess(photo.image)
         for i in range(h // 256):
             for j in range(w // 256):
                 remap.append((i, j))
-                tiles.append(photo.image[my+i*256:my+(i+1)*256, mx+j*256:mx+(j+1)*256])
+                tiles.append(pp[my+i*256:my+(i+1)*256, mx+j*256:mx+(j+1)*256])
         pred = model.predict(np.array(tiles))
         seg_tiles2 = np.argmax(pred, axis=-1).reshape((len(tiles), 128, 128))
         seg_tiles = np.repeat(np.repeat(seg_tiles2, 2, axis=1), 2, axis=2)
@@ -113,15 +136,20 @@ def covering():
     stitching.lay_over(img2, 0, 0, img3)
     cv2.imwrite('test/stitch-cov.png', img3)
 
-    layer = img3.copy()
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-    for idx, (k, cov) in enumerate(order):
-        for i, j in cov:
-            cv2.fillPoly(layer, (get_square(i, j) - [x_min, y_min]).astype(np.int32).reshape((1, -1, 2)), colors[idx])
-    img4 = cv2.addWeighted(img3, 0.75, layer, 0.25, 0)
-    cv2.imwrite('test/stitch-cov-squares.png', img4)
+    if n <= 3:
+        layer = img3.copy()
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        for idx, (k, cov) in enumerate(order):
+            for i, j in cov:
+                cv2.fillPoly(layer, (get_square(i, j) - [x_min, y_min]).astype(np.int32).reshape((1, -1, 2)), colors[idx])
+        img4 = cv2.addWeighted(img3, 0.75, layer, 0.25, 0)
+        cv2.imwrite('test/stitch-cov-squares.png', img4)
 
 
+print("Saving")
+for pi, photo in enumerate(series.photos):
+    cv2.imwrite(f'test/frames/{pi}.png', photo.image)
+    # cv2.imwrite(f'test/frames-pp/{pi}.png', preprocess(photo.image))
 
 # print("Segmentation")
 # segmentation()

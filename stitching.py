@@ -19,6 +19,7 @@ def solve_min_cover_ordering(covers: typing.Iterable[typing.Iterable[T]], return
     """
     :param covers: Greedy ordering of the input set covers such that each one covers the maximum number of uncovered
     objects.
+    :param return_covered: When `True`, returns a list of first-covered squares instead of their count.
     :return: Permutation of the indices of input covers in pair with the number of covered objects.
     """
     covers = list(covers)

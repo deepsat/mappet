@@ -73,6 +73,9 @@ class MapPhoto:
 
     @classmethod
     def from_drone_photo(cls, photo: DronePhoto, local_plane: geodesy.LocalTangentPlane, base_height: float = 100):
-        x, y, z = local_plane.enu(photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height)
+        x, y, z = local_plane.enu(photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height) \
+            if not any(v is None for v in (photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height)) \
+            else (None, None, None)
+
         metadata = MapPhotoMetadata(x, y, z, photo.metadata.roll, photo.metadata.pitch, photo.metadata.yaw)
         return cls(photo.image, metadata, base_height)

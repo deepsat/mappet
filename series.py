@@ -184,7 +184,7 @@ class RelativeSeries:
         :param color: Colour of the contour.
         :param fill_value: Fill-in value of the contour. Use a non-zero values to later replace with zero for
         a covering effect. Notice that `0` implies transparency.
-        :return: `warped` output for photo `i` transform and calculated contour image.
+        :return: `warped` output for photo `i` transform and drawn contour of the photo.
         """
         h0, w0, c0 = self.photos[i].image.shape
         ctr = np.full((h0 + 2 * thickness, w0 + 2 * thickness, c0), fill_value, dtype=np.uint8)
@@ -207,7 +207,7 @@ class RelativeSeries:
         :param color: Contour color.
         :param fill_in: Set to `True` for a "covering" effect of the contour inside.
         :param extend_bounds: Extend bounds to account for contour exterior.
-        :return: Stitched photo counters in `IM_0` system.
+        :return: Stitched photo contours in `IM_0` system.
         """
         result = stitching.lay_on_canvas(
             self.bounds(None, thickness if extend_bounds else 0),
