@@ -226,7 +226,7 @@ class RelativeSeries:
         if len(self.photos) < 2:
             return None
         xp = np.array([self.warped_center(i) for i in range(len(self.photos))])
-        yp = np.array([(photo.metadata.x, photo.metadata.y) for photo in self.photos])
+        yp = np.array([(photo.metadata.y, photo.metadata.x) for photo in self.photos])
         m, c = transforms.fit_even_similarity_c(xp, yp)
         x, y = transforms.real2_to_complex(xp), transforms.real2_to_complex(yp)
         err = np.abs((m * x + c) - y)

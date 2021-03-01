@@ -33,6 +33,7 @@ phs = get_drone_photos(
 )
 # print(sorted(glob.glob('test/seg-input/*.png')))
 # phs = [DronePhoto(cv2.imread(filename), DroneCameraMetadata()) for filename in sorted(glob.glob('test/seg-input/*.png'))[1]]
+print(phs[0].image.shape)
 
 if all(v is not None for v in (phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height)):
     lat, lng, lh = phs[0].metadata.latitude, phs[0].metadata.longitude, phs[0].metadata.height
@@ -151,6 +152,9 @@ for pi, photo in enumerate(series.photos):
     cv2.imwrite(f'test/frames/{pi}.png', photo.image)
     # cv2.imwrite(f'test/frames-pp/{pi}.png', preprocess(photo.image))
 
+print("IM to ENU")
+print(series.fit_im_to_enu())
+
 # print("Segmentation")
 # segmentation()
 
@@ -160,5 +164,3 @@ showcase()
 print("Covers")
 covering()
 
-print("IM to ENU")
-print(series.fit_im_to_enu())
