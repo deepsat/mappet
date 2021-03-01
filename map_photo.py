@@ -19,17 +19,17 @@ class MapPhotoMetadata:
     Metadata of a photo that is place-able on a map, acquired from measurements or TODO: inferred from other sources.
     Some of the metadata may be missing or be insufficient to place the photo precisely.
     """
-    x: OFloat
-    y: OFloat
-    z: OFloat
+    e: OFloat
+    n: OFloat
+    u: OFloat
     roll: OFloat
     pitch: OFloat
     yaw: OFloat
     camera: typing.Optional[DroneCamera]
 
-    def __init__(self, x: OFloat, y: OFloat, z: OFloat, roll: OFloat, pitch: OFloat, yaw: OFloat,
+    def __init__(self, n: OFloat, e: OFloat, u: OFloat, roll: OFloat, pitch: OFloat, yaw: OFloat,
                  camera: typing.Optional[DroneCamera] = None):
-        self.x, self.y, self.z = x, y, z
+        self.e, self.n, self.u = e, n, u
         self.roll, self.pitch, self.yaw = roll, pitch, yaw
         self.camera = camera
 
@@ -73,9 +73,9 @@ class MapPhoto:
 
     @classmethod
     def from_drone_photo(cls, photo: DronePhoto, local_plane: geodesy.LocalTangentPlane, base_height: float = 100):
-        x, y, z = local_plane.enu(photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height) \
-            if not any(v is None for v in (photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height)) \
-            else (None, None, None)
-
-        metadata = MapPhotoMetadata(x, y, z, photo.metadata.roll, photo.metadata.pitch, photo.metadata.yaw)
+        if not any(v is None for v in (photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height)):
+            e, n, u = local_plane.enu(photo.metadata.latitude, photo.metadata.longitude, photo.metadata.height)
+        else:
+            e = n = u = None
+        metadata = MapPhotoMetadata(e, n, u, photo.metadata.roll, photo.metadata.pitch, photo.metadata.yaw)
         return cls(photo.image, metadata, base_height)

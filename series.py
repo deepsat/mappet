@@ -222,11 +222,13 @@ class RelativeSeries:
         :return: Pair of complex numbers (m, c) fitted to (x, y) such that x is the list of IM_0 photo centers,
         and y is the measured (according to the GPS) ENU coordinates. In short, the IM_0 -> ENU transform.
         Can be converted to a matrix via `transforms.complex_to_augmented_transform`.
+        Note: Actually, this is the IM_0 -> NEU transform (an axis swap is required), since the orientation of 
+        the coordinate systems is different. The name ENU is used for conventional purposes.
         """
         if len(self.photos) < 2:
             return None
         xp = np.array([self.warped_center(i) for i in range(len(self.photos))])
-        yp = np.array([(photo.metadata.y, photo.metadata.x) for photo in self.photos])
+        yp = np.array([(photo.metadata.n, photo.metadata.e) for photo in self.photos])
         m, c = transforms.fit_even_similarity_c(xp, yp)
         x, y = transforms.real2_to_complex(xp), transforms.real2_to_complex(yp)
         err = np.abs((m * x + c) - y)
