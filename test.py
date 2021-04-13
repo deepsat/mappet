@@ -25,7 +25,7 @@ logging.basicConfig(
 FILENAME = '/run/media/kubin/Common/deepsat/drone4.MP4'
 SUB_FILENAME = '/run/media/kubin/Common/deepsat/drone4.SRT'
 
-n = 30
+n = 20
 phs = get_drone_photos(
     ([4525, 4625, 4700, 4800, 4850, 4900, 4950, 5000] + list(range(5000, 7000, 25)))[:n],
     # tuple(range(3000, 3000+n*50, 25))[:n],
@@ -135,7 +135,8 @@ def covering():
     img2[(img2 == 1).all(axis=-1)] = [0, 0, 0]
     img3 = img.copy()
     stitching.lay_over(img2, 0, 0, img3)
-    cv2.imwrite('test/stitch-cov.png', img3)
+    cv2.imwrite('test/stitch-cov.png', img)
+    cv2.imwrite('test/stitch-cov-ctr.png', img3)
 
     if n <= 3:
         layer = img3.copy()
